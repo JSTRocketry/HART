@@ -2,6 +2,7 @@
 #include "MPU9250.h"
 #include "SFE_BMP180.h"
 double T, P, p0, a;
+long timeStamp;
 
 MPU9250 imu;
 SFE_BMP180 pressure;
@@ -92,6 +93,7 @@ void setup() {
       while(true);
     }
     initBMP();
+    timeStamp = millis();
 
 }
 //MPU9250_Raw_Data imuData;
@@ -101,9 +103,9 @@ long timeStart = 0;
 void loop() {
     timeStart = micros();
     imu.getData(&imuData);
-    Serial.println("@{OX:" + String(imuData.orientation.x) + ";OY:" + String(imuData.orientation.y) + ";OZ:" + String(imuData.orientation.z) + "}@");
-    Serial.println("@{AX:" + String(imuData.accel.x) + ";AY:" + String(imuData.accel.y) + ";AZ:" + String(imuData.accel.z) + "}@");
-    Serial.println("@{GX:" + String(imuData.gyro.x) + ";GY:" + String(imuData.gyro.y) + ";GZ:" + String(imuData.gyro.z) + "}@");
+    Serial.println("@{OX:" + String(imuData.orientation.x) + ";OY:" + String(imuData.orientation.y) + ";OZ:" + String(imuData.orientation.z) + ";TS:" + String(timeStamp) "}@");
+    Serial.println("@{AX:" + String(imuData.accel.x) + ";AY:" + String(imuData.accel.y) + ";AZ:" + String(imuData.accel.z) + ";TS:" + String(timeStamp) "}@");
+    Serial.println("@{GX:" + String(imuData.gyro.x) + ";GY:" + String(imuData.gyro.y) + ";GZ:" + String(imuData.gyro.z) + ";TS:" + String(timeStamp) "}@");
     getAltitude();
     Serial.println("Altitude: " + String(a));
 
