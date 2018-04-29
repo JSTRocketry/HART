@@ -2,7 +2,7 @@
 #include "MPU9250.h"
 #include "SFE_BMP180.h"
 double T, P, p0, a;
-long timeStamp;
+unsigned long timeStamp;
 
 MPU9250 imu;
 SFE_BMP180 pressure;
