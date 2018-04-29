@@ -1,6 +1,7 @@
 #include "Arduino.h"
 #include "MPU9250.h"
 #include "SFE_BMP180.h"
+#include "math.h"
 double T, P, p0, a;
 unsigned long timeStamp;
 
@@ -55,7 +56,7 @@ float getAltitude(){
           if (status != 0)
           {
             p0 = pressure.sealevel(P, ALTITUDE);
-            a = pressure.altitude(P, p0);
+            a = pressure.calcAlt(P, p0);
           }
           else
           {
@@ -82,6 +83,13 @@ float getAltitude(){
     Serial.println("FAILURE!");
   }
 
+}
+
+void calcAlt(P, p0){
+  double base = (P/p0);
+  double exponent = (1/5.255);
+  float alt = 44300 * (1- pow(base, exponent));
+  return(alt);
 }
 
 void setup() {
