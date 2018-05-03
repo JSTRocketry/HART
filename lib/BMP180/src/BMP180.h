@@ -1,5 +1,5 @@
 /*
-	SFE_BMP180.h
+	BMP180.h
 	Bosch BMP180 pressure sensor library for the Arduino microcontroller
 	Mike Grusin, SparkFun Electronics
 
@@ -11,14 +11,18 @@
 
 	version 1.0 2013/09/20 initial version
 	Verison 1.1.2 - Updated for Arduino 1.6.4 5/2015
-	
+
 	Our example code uses the "beerware" license. You can do anything
 	you like with this code. No really, anything. If you find it useful,
 	buy me a (root) beer someday.
+
+	Modified by J. Dunne on 2018/5/2
+	Added asynchronis pressure reading and auto baseline determining for faster refresh rates.
+
 */
 
-#ifndef SFE_BMP180_h
-#define SFE_BMP180_h
+#ifndef BMP180_h
+#define BMP180_h
 
 #if defined(ARDUINO) && ARDUINO >= 100
 #include "Arduino.h"
@@ -26,15 +30,11 @@
 #include "WProgram.h"
 #endif
 
-class SFE_BMP180
+class BMP180
 {
 	public:
-		SFE_BMP180(); // base type
-
+		BMP180(); // base type
 		char begin();
-			// call pressure.begin() to initialize BMP180 before use
-			// returns 1 if success, 0 if failure (bad component or I2C bus shorted?)
-		
 		char startTemperature(void);
 			// command BMP180 to start a temperature measurement
 			// returns (number of ms to wait) for success, 0 for fail
@@ -61,15 +61,21 @@ class SFE_BMP180
 			// A: current altitude (meters)
 			// returns sealevel pressure in mbar
 
-		double altitude(double P, double P0);
+		double altitude(double P);
 			// convert absolute pressure to altitude (given baseline pressure; sea-level, runway, etc.)
 			// P: absolute pressure (mbar)
 			// P0: fixed baseline pressure (mbar)
 			// returns signed altitude in meters
 
+		double getPressure();
+
+		double getPressureAsync();
+
+		void setBaselinePressure();
+
 		char getError(void);
 			// If any library command fails, you can retrieve an extended
-			// error code using this command. Errors are from the wire library: 
+			// error code using this command. Errors are from the wire library:
 			// 0 = Success
 			// 1 = Data too long to fit in transmit buffer
 			// 2 = Received NACK on transmit of address
@@ -77,7 +83,7 @@ class SFE_BMP180
 			// 4 = Other error
 
 	private:
-	
+
 		char readInt(char address, int16_t &value);
 			// read an signed int (16 bits) from a BMP180 register
 			// address: BMP180 register address
@@ -87,7 +93,7 @@ class SFE_BMP180
 		char readUInt(char address, uint16_t &value);
 			// read an unsigned int (16 bits) from a BMP180 register
 			// address: BMP180 register address
-			// value: external unsigned int for returned value (16 bits)
+			// svalue: external unsigned int for returned value (16 bits)
 			// returns 1 for success, 0 for fail, with result in value
 
 		char readBytes(unsigned char *values, char length);
@@ -95,17 +101,29 @@ class SFE_BMP180
 			// values: array of char with register address in first location [0]
 			// length: number of bytes to read back
 			// returns 1 for success, 0 for fail, with read bytes in values[] array
-			
+
 		char writeBytes(unsigned char *values, char length);
 			// write a number of bytes to a BMP180 register (and consecutive subsequent registers)
 			// values: array of char with register address in first location [0]
 			// length: number of bytes to write
 			// returns 1 for success, 0 for fail
-			
+
 		int16_t AC1,AC2,AC3,VB1,VB2,MB,MC,MD;
-		uint16_t AC4,AC5,AC6; 
+		uint16_t AC4,AC5,AC6;
 		double c5,c6,mc,md,x0,x1,x2,y0,y1,y2,p0,p1,p2;
 		char _error;
+
+		enum CurrentPressureReadMode{
+		  NEED_TEMP,
+		  READING_TEMP,
+		  NEED_PRESSURE,
+		  READING_PRESSURE
+		};
+		float baseLinePressure = 0;
+		long mostRecentDelay = 0;
+		long lastEvent = 0;
+		CurrentPressureReadMode mode;
+		double lastPressure = -1, lastTemperature = -1;
 };
 
 #define BMP180_ADDR 0x77 // 7-bit address

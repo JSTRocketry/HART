@@ -10,10 +10,10 @@ This archive contains an Arduino library and example sketch showing how to use t
 Repository Contents
 -------------------
 
-* **/examples** - Example sketches for the library (.ino). Run these from the Arduino IDE. 
+* **/examples** - Example sketches for the library (.ino). Run these from the Arduino IDE.
 * **/src** - Source files for the library (.cpp, .h).
-* **keywords.txt** - Keywords from this library that will be highlighted in the Arduino IDE. 
-* **library.properties** - General library properties for the Arduino package manager. 
+* **keywords.txt** - Keywords from this library that will be highlighted in the Arduino IDE.
+* **library.properties** - General library properties for the Arduino package manager.
 
 Documentation
 --------------
@@ -22,7 +22,7 @@ Documentation
 * **[Product Repository](https://github.com/sparkfun/BMP180_Breakout)** - Main repository (including hardware files) for the BMP180 Breakout.
 * **[Hookup Guide](https://learn.sparkfun.com/tutorials/bmp180-barometric-pressure-sensor-hookup)** - Basic hookup guide for the BMP180 Breakout.
 
-Products that use this Library 
+Products that use this Library
 ---------------------------------
 
 * [SEN-11824](https://www.sparkfun.com/products/11824) - BMP180 Barometric Pressure Sensor Breakout
@@ -38,7 +38,7 @@ Version History
 License Information
 -------------------
 
-This product is _**open source**_! 
+This product is _**open source**_!
 
 The **code** is beerware; if you see me (or any other SparkFun employee) at the local, and you've found our code helpful, please buy us a round!
 
@@ -47,3 +47,6 @@ Please use, reuse, and modify these files as you see fit. Please maintain attrib
 Distributed as-is; no warranty is given.
 
 \- Your friends at SparkFun.
+
+
+Modified by J. Dunne on 2018/5/2

@@ -1,12 +1,15 @@
 #include "Arduino.h"
 #include "MPU9250.h"
-#include "SFE_BMP180.h"
+#include "BMP180.h"
 #include "math.h"
+#include "SD.h"
 double T, P, p0, a;
 unsigned long timeStamp;
 
+
+File flightData;
 MPU9250 imu;
-SFE_BMP180 pressure;
+BMP180 pressure;
 bool initIMU(){
   if(imu.begin(MPU9250_GYRO_RANGE_2000_DPS, MPU9250_ACCEL_RANGE_16_GPS) < 0){
     Serial.println("IMU init Fail!");
@@ -37,61 +40,6 @@ bool initBMP(){
 
 }
 
-float getAltitude(){
-  float ALTITUDE = 124.31;
-  char status = pressure.startTemperature();
-  if (status != 0)
-  {
-    delay(status);
-    if (status != 0)
-    {
-      status = pressure.getTemperature(T);
-      if (status != 0)
-      {
-        status = pressure.startPressure(3);
-        if (status != 0)
-        {
-          delay(status);
-          status = pressure.getPressure(P,T);
-          if (status != 0)
-          {
-            p0 = pressure.sealevel(P, ALTITUDE);
-            a = pressure.calcAlt(P, p0);
-          }
-          else
-          {
-            Serial.println("FAILURE!");
-          }
-        }
-        else
-        {
-          Serial.println("FAILURE!");
-        }
-      }
-      else
-      {
-        Serial.println("FAILURE!");
-      }
-    }
-    else
-  {
-    Serial.println("FAILURE");
-  }
-  }
-  else
-  {
-    Serial.println("FAILURE!");
-  }
-
-}
-
-void calcAlt(P, p0){
-  double base = (P/p0);
-  double exponent = (1/5.255);
-  float alt = 44300 * (1- pow(base, exponent));
-  return(alt);
-}
-
 void setup() {
     // put your setup code here, to run once:
     delay(5000);
@@ -100,22 +48,46 @@ void setup() {
       Serial.println("IMU INIT FAILED! STOPPING!");
       while(true);
     }
+    Serial.println("IMU INIT SUCCESS!");
     initBMP();
+    //while(!Serial.available());
+    if(!SD.begin(PA4)){
+
+      //Serial.println("")
+      while(true)Serial.println("SD init failed!");
+    }
+
+    flightData = SD.open("DATA.txt",FILE_WRITE);
+    flightData.println("Hello World!");
+    //flightData.close();
+    //while(true);
     timeStamp = millis();
 
 }
 //MPU9250_Raw_Data imuData;
 MPU9250_Data imuData;
-
+float currentAlt = 0;
 long timeStart = 0;
 void loop() {
-    timeStart = micros();
-    imu.getData(&imuData);
-    Serial.println("@{OX:" + String(imuData.orientation.x) + ";OY:" + String(imuData.orientation.y) + ";OZ:" + String(imuData.orientation.z) + ";TS:" + String(timeStamp) "}@");
-    Serial.println("@{AX:" + String(imuData.accel.x) + ";AY:" + String(imuData.accel.y) + ";AZ:" + String(imuData.accel.z) + ";TS:" + String(timeStamp) "}@");
-    Serial.println("@{GX:" + String(imuData.gyro.x) + ";GY:" + String(imuData.gyro.y) + ";GZ:" + String(imuData.gyro.z) + ";TS:" + String(timeStamp) "}@");
-    getAltitude();
-    Serial.println("Altitude: " + String(a));
+    if(millis() < 10000){
+      timeStamp = millis();
+      currentAlt = pressure.altitude(pressure.getPressureAsync());
+      imu.getData(&imuData);
+      //flightData.println("High");
+      flightData.println("@{OX:" + String(imuData.orientation.x) + ";OY:" + String(imuData.orientation.y) + ";OZ:" + String(imuData.orientation.z) + ";TS:" + String(timeStamp) + ";}@");
+      flightData.println("@{PA:" + String(currentAlt) + ";TS:" + String(timeStamp) + ";}");
+      //flightData.close();
+      Serial.println();
+      Serial.println("@{AX:" + String(imuData.accel.x) + ";AY:" + String(imuData.accel.y) + ";AZ:" + String(imuData.accel.z) + ";TS:" + String(timeStamp) + ";}@");
+      Serial.println("@{GX:" + String(imuData.gyro.x) + ";GY:" + String(imuData.gyro.y) + ";GZ:" + String(imuData.gyro.z) + ";TS:" + String(timeStamp)+ ";}@");
+      Serial.println("@{PA:" + String(currentAlt) + ";TS:" + String(timeStamp) + ";}");
+    }
+    else{
+      flightData.close();
+      while(true);
+    }
+    //getAltitude();
+    //Serial.println("Altitude: " + String(a));
 
     //Serial.println("Linear Acceleration: " + String(imuData.linearAcceleration));
     /*
@@ -133,5 +105,5 @@ void loop() {
     }
     */
     //Serial.println("Velocity z: " + String(imuData.velocity.z));
-    delay(200);
+    delay(2);
 }
