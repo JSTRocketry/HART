@@ -8,6 +8,7 @@ unsigned long timeStamp;
 
 
 File flightData;
+File testSD;
 MPU9250 imu;
 BMP180 pressure;
 bool initIMU(){
@@ -36,6 +37,20 @@ bool initBMP(){
   {
     Serial.println("BMP 180 INIT FAILED!");
     while(true);
+  }
+
+}
+
+bool verifySD(){
+  testSD = SD.open("testt.txt", FILE_WRITE);
+  testSD.println("1");
+  testSD.close();
+  testSD = SD.open("testt.txt", FILE_READ);
+  if(testSD.read() = 1){
+    return true;
+  }
+  else{
+    return false;
   }
 
 }
@@ -69,6 +84,7 @@ MPU9250_Data imuData;
 float currentAlt = 0;
 long timeStart = 0;
 void loop() {
+  if(verifySD()){
     if(millis() < 10000){
       timeStamp = millis();
       currentAlt = pressure.altitude(pressure.getPressureAsync());
@@ -86,6 +102,7 @@ void loop() {
       flightData.close();
       while(true);
     }
+  }
     //getAltitude();
     //Serial.println("Altitude: " + String(a));
 
