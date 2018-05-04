@@ -103,6 +103,9 @@ void loop() {
       while(true);
     }
   }
+  else{
+    printf("SD CARD VERIFICATION FAILED!")
+  }
     //getAltitude();
     //Serial.println("Altitude: " + String(a));
 
