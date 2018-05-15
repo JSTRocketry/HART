@@ -7,7 +7,7 @@
 #define SD_ERROR_LED PC13
 #define IMU_ERROR_LED PC14
 #define BMP_ERROR_LED PC15
-#define THRESHOLD = 1.4;
+#define THRESHOLD .4
 
 //double T, P, p0, a;
 unsigned long timeStamp;
