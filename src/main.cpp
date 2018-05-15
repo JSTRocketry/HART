@@ -7,6 +7,7 @@
 #define SD_ERROR_LED PC13
 #define IMU_ERROR_LED PC14
 #define BMP_ERROR_LED PC15
+#define THRESHOLD = 1.4;
 
 //double T, P, p0, a;
 unsigned long timeStamp;
@@ -76,6 +77,16 @@ bool initBMP(){
     return true;
   }
   return false;
+}
+
+void waitForLaunch(){
+  x = imu.accel.x;
+  y = imu.accel.y;
+  z = imu.accel.z;
+  normalMag = sqrt(pow(x,2) + pow(y,2) + pow(z,2));
+  if(fabs(1-normalMag) <= 1){
+    while(true);
+  }
 }
 
 void setup() {
