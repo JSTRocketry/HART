@@ -7,7 +7,7 @@
 #define SD_ERROR_LED PC13
 #define IMU_ERROR_LED PC14
 #define BMP_ERROR_LED PC15
-#define THRESHOLD .4
+#define THRESHOLD 3
 
 //double T, P, p0, a;
 unsigned long timeStamp;
@@ -19,6 +19,54 @@ MPU9250 imu;
 BMP180 pressure;
 
 String fileName;
+
+MPU9250_Data imuData;
+float currentAlt = 0;
+long timeStart = 0;
+
+
+double tempPressure = 0;
+bool isNewPressure = false;
+
+long launchMillis = 0;
+#define ALTITUDE_PRE_LAUNCH_BUFFER_SIZE 100
+float altitudePreLaunchBuffer[ALTITUDE_PRE_LAUNCH_BUFFER_SIZE];
+int altitudePreLaunchBufferIndex = 0;
+void addToPreLaunchAltitudeBuffer(float altitude){
+  altitudePreLaunchBuffer[altitudePreLaunchBufferIndex] = altitude;
+  if(altitudePreLaunchBufferIndex + 1 < ALTITUDE_PRE_LAUNCH_BUFFER_SIZE) altitudePreLaunchBufferIndex ++;
+  else altitudePreLaunchBufferIndex = 0;
+}
+
+
+int SD_FAILURE =        0b00000001;
+int IMU_FAILURE =       0b00000010;
+int BMP_FAILURE =       0b00000100;
+int SD_NO_SPACE =       0b00001000;
+int LAUNCH_DETECTED =   0b00010000;
+
+int currentErrors = 0;
+
+void addError(int what){
+  currentErrors |= what;
+}
+
+void handleErrors(){
+  if(currentErrors &= (0b11111111 | SD_FAILURE)){
+    Serial.println("SD_FAILURE!");
+  }
+}
+
+void removeError(int what){
+  currentErrors &= what;
+}
+
+
+
+
+
+void recordLaunch();
+
 
 String getFileName(){
   String base = "fdat";
@@ -79,14 +127,28 @@ bool initBMP(){
   return false;
 }
 
-void waitForLaunch(){
-  x = imu.accel.x;
-  y = imu.accel.y;
-  z = imu.accel.z;
-  normalMag = sqrt(pow(x,2) + pow(y,2) + pow(z,2));
-  if(fabs(1-normalMag) <= 1){
-    while(true);
+void reportLaunch(){
+  digitalWrite(SD_ERROR_LED, HIGH);
+  digitalWrite(BMP_ERROR_LED, HIGH);
+  digitalWrite(IMU_ERROR_LED, HIGH);
+}
+
+void recordPreLaunchBuffer(){
+  for(int i = 0; i < ALTITUDE_PRE_LAUNCH_BUFFER_SIZE; i ++){
+    writeData("@{PA:" + String(altitudePreLaunchBuffer[(altitudePreLaunchBufferIndex + i) % ALTITUDE_PRE_LAUNCH_BUFFER_SIZE]) + ";TS:" + String(timeStamp) + ";}@\n",false);
   }
+}
+
+void waitForLaunch(){
+  imu.getData(&imuData);
+  float normalMag = sqrt(pow(imuData.accel.x,2) + pow(imuData.accel.y,2) + pow(imuData.accel.z,2));
+  Serial.println("Accel: " + String(normalMag));
+  while(fabs(1.0 - normalMag) <= THRESHOLD){
+    Serial.println("Accel: " + String(normalMag));
+    imu.getData(&imuData);
+    normalMag = sqrt(pow(imuData.accel.x,2) + pow(imuData.accel.y,2) + pow(imuData.accel.z,2));
+  }
+  reportLaunch();
 }
 
 void setup() {
@@ -124,8 +186,11 @@ void setup() {
     }
     fileName = getFileName();
     if(fileName.equals("")){
+      digitalWrite(SD_ERROR_LED, HIGH);
+      digitalWrite(IMU_ERROR_LED, HIGH);
       while(true){
         Serial.println("SD Card FULL!");
+
         delay(20);
       }
     }
@@ -141,43 +206,28 @@ void setup() {
       }
     }
     timeStamp = millis();
+    recordLaunch();
 }
 
 //MPU9250_Raw_Data imuData;
-MPU9250_Data imuData;
-float currentAlt = 0;
-long timeStart = 0;
-void loop() {
-    timeStamp = millis();
-    currentAlt = pressure.altitude(pressure.getPressureAsync());
+
+void recordLaunch(){
+  waitForLaunch();
+  launchMillis = millis();
+  while(true){
+    timeStamp = millis() - launchMillis;
+    isNewPressure = pressure.getPressureAsync(&tempPressure);
+    //Serial.println("Pressure Delay: " + String(millis() - launchMillis - timeStamp));
+    if(isNewPressure){
+      currentAlt = pressure.altitude(tempPressure);
+      writeData("@{PA:" + String(currentAlt) + ";TS:" + String(timeStamp) + ";}@\n",false);
+    }
     imu.getData(&imuData);
     //flightData.println("High");
     writeData("@{OX:" + String(imuData.orientation.x) + ";OY:" + String(imuData.orientation.y) + ";OZ:" + String(imuData.orientation.z) + ";TS:" + String(timeStamp) + ";}@\n",false);
-    writeData("@{PA:" + String(currentAlt) + ";TS:" + String(timeStamp) + ";}@\n",false);
-    writeData("@{AX:" + String(imuData.accel.x) + ";AY:" + String(imuData.accel.y) + ";AZ:" + String(imuData.accel.z) + ";TS:" + String(timeStamp) + ";}@\n",false);
-    //flightData.close();
-    //Serial.println();
-    //Serial.println("@{AX:" + String(imuData.accel.x) + ";AY:" + String(imuData.accel.y) + ";AZ:" + String(imuData.accel.z) + ";TS:" + String(timeStamp) + ";}@\n");
-    //Serial.println("@{GX:" + String(imuData.gyro.x) + ";GY:" + String(imuData.gyro.y) + ";GZ:" + String(imuData.gyro.z) + ";TS:" + String(timeStamp)+ ";}@\n");
-    //Serial.println("@{PA:" + String(currentAlt) + ";TS:" + String(timeStamp) + ";}")
-    //getAltitude();
-    //Serial.println("Altitude: " + String(a));
 
-    //Serial.println("Linear Acceleration: " + String(imuData.linearAcceleration));
-    /*
-    Serial.print("DATA FUSE MODE: ");
-    switch(imuData.dataFuseMode){
-      case MPU9250_DATA_FUSE_FULL_9_DOF:
-        Serial.println("9_DOF");
-        break;
-      case MPU9250_DATA_FUSE_GYRO_MAG_AUTO_ACCEL:
-        Serial.println("GYRO MAG AUTO ACCEL");
-        break;
-      case MPU9250_DATA_FUSE_GYRO_MAG_AUTO_NO_ACCEL:
-        Serial.println("GYRO MAG AUTO NO ACCEL");
-        break;
-    }
-    */
-    //Serial.println("Velocity z: " + String(imuData.velocity.z));
-    //delay(2);
+    writeData("@{AX:" + String(imuData.accel.x) + ";AY:" + String(imuData.accel.y) + ";AZ:" + String(imuData.accel.z) + ";TS:" + String(timeStamp) + ";}@\n",false);
+  }
+}
+void loop() {
 }

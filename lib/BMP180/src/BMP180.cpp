@@ -123,7 +123,8 @@ char BMP180::begin()
 		Serial.print("p1: "); Serial.println(p1);
 		Serial.print("p2: "); Serial.println(p2);
 		*/
-		getPressureAsync();
+		double tempPressure;
+		getPressureAsync(&tempPressure);
 		setBaselinePressure();
 		// Success!
 		return(1);
@@ -426,20 +427,21 @@ double BMP180::getPressure()
   else Serial.println("error starting temperature measurement\n");
 }
 
-double BMP180::getPressureAsync(){
+bool BMP180::getPressureAsync(double *pressure){
   if(lastPressure == -1){
     Serial.println("Setting up BMP for ASYNC");
     lastPressure = -3;
     while(lastPressure == -3){
-      getPressureAsync();
+      getPressureAsync(pressure);
     }
   }
+	*pressure = lastPressure;
   switch(mode){
     case(NEED_TEMP):
       mostRecentDelay = startTemperature();
       lastEvent = millis();
       mode = READING_TEMP;
-      return lastPressure;
+      return false;
       break;
     case(READING_TEMP):
       if((long)millis() - lastEvent >= mostRecentDelay){
@@ -447,7 +449,7 @@ double BMP180::getPressureAsync(){
         lastEvent = millis();
         mode = NEED_PRESSURE;
       }
-      return lastPressure;
+      return false;
       break;
     case(NEED_PRESSURE):
       if((long)millis() - lastEvent >= mostRecentDelay){
@@ -455,16 +457,18 @@ double BMP180::getPressureAsync(){
         lastEvent = millis();
         mode = READING_PRESSURE;
       }
-      return lastPressure;
+      return false;
       break;
     case(READING_PRESSURE):
       if((long)millis() - lastEvent >= mostRecentDelay){
         getPressure(lastPressure, lastTemperature);
         lastEvent = millis();
         mode = NEED_TEMP;
+				*pressure = lastPressure;
+	      return true;
       }
-      return lastPressure;
+			return false;
       break;
   }
-  return (float)lastPressure;
+  return false;
 }

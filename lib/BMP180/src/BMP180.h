@@ -69,7 +69,7 @@ class BMP180
 
 		double getPressure();
 
-		double getPressureAsync();
+		bool getPressureAsync(double *pressure);
 
 		void setBaselinePressure();
 
