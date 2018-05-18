@@ -8,6 +8,7 @@
 #define IMU_ERROR_LED PC14
 #define BMP_ERROR_LED PC15
 #define THRESHOLD 3
+#define THRESHOLD_DELAY 500
 
 //double T, P, p0, a;
 unsigned long timeStamp;
@@ -27,7 +28,6 @@ long timeStart = 0;
 
 double tempPressure = 0;
 bool isNewPressure = false;
-
 long launchMillis = 0;
 #define ALTITUDE_PRE_LAUNCH_BUFFER_SIZE 100
 float altitudePreLaunchBuffer[ALTITUDE_PRE_LAUNCH_BUFFER_SIZE];
@@ -169,8 +169,7 @@ void setup() {
 
       }
     }
-    Serial.println("IMU INIT SUCCESS!");
-    if(!initBMP()){
+    Serial.println("IMU INIT SUCCESS!");    if(!initBMP()){
         digitalWrite(BMP_ERROR_LED,HIGH);
         while(true){
           Serial.println("BMP FAILURE!");
@@ -230,4 +229,22 @@ void recordLaunch(){
   }
 }
 void loop() {
+}
+
+
+float getAccelMagnitude(){
+  imu.getData(&imuData);
+  return sqrt(pow(imuData.accel.x,2) + pow(imuData.accel.y,2) + pow(imuData.accel.z,2));
+}
+
+void waitForLaunchOverDuration(){
+  while(true){
+    while(fabs(1-getAccelMagnitude()) < THRESHOLD);
+    long timeBegin = millis();
+    while(fabs(1-getAccelMagnitude()) >= THRESHOLD){
+      if (millis() - timeBegin > THRESHOLD_DELAY){
+        return;
+      }
+    }
+  }
 }
